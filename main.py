@@ -1,16 +1,17 @@
 import task
 import task_dispatcher
 import uunifast
+from diagram_displayer import DiagramDisplayer
 from processor import Processor
 from scheduler import Scheduler
 
 
 def run(utilization: float):
-    task_count = 50
+    task_count = 20
     processor_count = 8
     processor_max_f = 1.6
     processor_min_f = 1.2
-    scheduling_upperbound = 1200
+    scheduling_upperbound = 200
 
     uunifast_utilization_list = uunifast.generate_uunifast_discard(utilization * processor_count, task_count)
     tasks = task.generate_tasks_from_utilization(uunifast_utilization_list, "task.csv")
@@ -23,8 +24,7 @@ def run(utilization: float):
     scheduler = Scheduler(processors=processors, scheduling_upperbound=scheduling_upperbound)
     scheduler.schedule()
     logs = scheduler.get_logs()
-    a = 1
-    # todo : @HOSSEIN
+    DiagramDisplayer.draw(logs)
 
 
 if __name__ == '__main__':
