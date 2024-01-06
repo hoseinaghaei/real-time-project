@@ -1,6 +1,8 @@
 import random
 import matplotlib.pyplot as plt
 
+from task import Criticality
+
 
 class DiagramDisplayer(object):
 
@@ -31,6 +33,11 @@ class DiagramDisplayer(object):
                     align='edge', edgecolor='grey', fill=True,
                     color=colors[i["task_id"]]
                 )
+                if i["criticality"] == Criticality.HARD:
+                    text_position = (i["start_time"] + i["end_time"]) / 2
+                    ax.text(text_position, 0.5, "H", ha='center', va='center', color='black', fontsize=10,
+                            fontweight='bold')
+
             ax.set_ylabel(f'CORE {core.id}')
             ax.set_xlim(0, end_time)
             ax.set_ylim(0, 1)

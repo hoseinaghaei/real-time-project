@@ -68,6 +68,7 @@ class Scheduler(object):
         log = {
             "instance_number": instance.number,
             "task_id": instance.task.id,
+            "criticality": instance.task.criticality,
             "start_time": start,
         }
         has_slack, new_exec_time, added_time = self._has_slack(p, start, end)
