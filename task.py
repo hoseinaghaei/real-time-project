@@ -15,16 +15,19 @@ class Task(object):
         self.period = period
         self.execution_time = execution_time
         self.criticality = criticality
-        self.instances = []  # type of Instance
+        self.instances = []
 
     def get_csv_row(self):
         return [self.id, self.execution_time, self.period, self.criticality, self.utilization]
 
 
 class Instance:
-    def __init__(self, task: Task, number: int):
+    def __init__(self, task: Task, number: int, arrival: int, deadline: int, exec_time: int):
         self.task = task
         self.number = number
+        self.arrival = arrival
+        self.deadline = deadline
+        self.remaining_time = exec_time
 
 
 def generate_tasks_from_utilization(utilization_list: list[float], csv_address: str = None) -> list[Task]:
