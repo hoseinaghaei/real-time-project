@@ -23,6 +23,7 @@ def run(utilization: float):
     scheduler = Scheduler(processors=processors, scheduling_upperbound=scheduling_upperbound)
     scheduler.schedule()
     logs = scheduler.get_logs()
+    a = 1
     # todo : @HOSSEIN
 
 

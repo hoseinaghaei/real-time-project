@@ -53,15 +53,18 @@ class Scheduler(object):
         if self.slack_time_mapper[p] == 0:
             return False, None, 1
         slack_scope = math.ceil(self.hyper_period_mapper[p] / self.slack_time_mapper[p])
-        slack_count = (end - start) // slack_scope
-        if slack_count < 1:
+        if slack_scope < 1 or (end - start) // slack_scope < 1:
             return False, None, 1
+        slack_count = (end - start) // slack_scope
         run_time = end - start
         ratio = max(run_time / (run_time + slack_count), p.min_f / p.max_f)
         run_time /= ratio
         return True, run_time, math.ceil(run_time) - (end - start)
 
     def _add_log(self, p: Processor, instance: Instance, start: int, end: int):
+        if not instance:
+            return 0
+
         log = {
             "instance_number": instance.number,
             "task_id": instance.task.id,
@@ -85,7 +88,7 @@ class Scheduler(object):
 
     def _increase_time_and_update_queue(self):
         self.time += 1
-        new_instances = set(filter(lambda x: x == self.time, self.ready_instances))
+        new_instances = set(filter(lambda x: x.arrival == self.time, self.ready_instances))
         self.ready_instances -= new_instances
         self.queue.update(new_instances)
 
@@ -110,7 +113,7 @@ class Scheduler(object):
             self._prepare_scheduler_for_processor(p)
             time_slice_start = 0
             simulation_time = self.scheduling_upperbound or self.hyper_period_mapper[p]
-            while self.time < simulation_time:
+            while self.time < simulation_time and (self.queue or self.ready_instances):
                 self._run_instance_and_update_queue()
                 selected_instance = min(self.queue, key=lambda x: x.deadline) if self.queue else None
                 if selected_instance != self.running_instance:
