@@ -7,3 +7,7 @@ class Processor:
         self.tasks = tasks
         self.min_f = min_f
         self.max_f = max_f
+        self.state = None
+
+    def get_utilization(self):
+        return sum([t.utilization for t in self.tasks])

@@ -7,9 +7,11 @@ from task import Instance
 
 
 class Scheduler(object):
-    def __init__(self, processors: list[Processor], scheduling_upperbound: Optional[int] = None):
+    def __init__(self, processors: list[Processor], scheduling_upperbound: Optional[int] = None,
+                 time_partition: Optional[int] = 10):
         self.processors = processors
         self.scheduling_upperbound = scheduling_upperbound
+        self.time_partition = time_partition
         self.hyper_period_mapper = {p: None for p in self.processors}
         self.slack_time_mapper = {p: None for p in self.processors}
         self.run_logger = {p: [] for p in self.processors}
@@ -109,21 +111,117 @@ class Scheduler(object):
         if self.running_instance.remaining_time == 0:
             self.queue.remove(self.running_instance)
 
+    @staticmethod
+    def _pop_job_to_migrate(high_state_p: Processor, low_state_p: Processor, migrate_rate: int):
+        high_state_p.tasks.sort(key=lambda p: p.utilization)
+        if migrate_rate == 2:
+            i = len(high_state_p.tasks) - 1
+            while (low_state_p.get_utilization() + high_state_p.tasks[i].utilization > 1 or
+                   (high_state_p.state['running_instance'] is not None and high_state_p.tasks[i] == high_state_p.state[
+                       'running_instance'].task)):
+                if i == 0:
+                    return None, None, None
+                i -= 1
+            job = high_state_p.tasks.pop(i)
+
+        else:
+            i = 0
+            while low_state_p.get_utilization() + high_state_p.tasks[i].utilization > 1 or (
+                    high_state_p.state['running_instance'] is not None and high_state_p.tasks[i] == high_state_p.state[
+                'running_instance'].task):
+                i += 1
+                if i == len(high_state_p.tasks):
+                    return None, None, None
+
+            job = high_state_p.tasks.pop(i)
+
+        instances = set()
+        ready_instances = set()
+        for instance in high_state_p.state['ready_instances']:
+            if instance.task != job:
+                instances.add(instance)
+            else:
+                ready_instances.add(instance)
+
+        high_state_p.state['ready_instances'] = instances
+
+        instances = set()
+        queue_instances = set()
+        for instance in high_state_p.state['queue']:
+            if instance.task != job:
+                instances.add(instance)
+            else:
+                queue_instances.add(instance)
+
+        high_state_p.state['queue'] = instances
+
+        return job, ready_instances, queue_instances
+
+    def _prepare_scheduler_after_feedback(self):
+        processor_sorted_state = sorted(self.processors, key=lambda p: p.state['utilization'])
+        for i in range(len(processor_sorted_state) // 2):
+            high_state_p = processor_sorted_state[-i - 1]
+            low_state_p = processor_sorted_state[i]
+            state_diff = high_state_p.state['utilization'] - low_state_p.state['utilization']
+            if state_diff > 0.2:
+                migrate_rate = 2
+            else:
+                migrate_rate = 1
+
+            job_to_migrate, ready_instances, queue_instances = self._pop_job_to_migrate(high_state_p, low_state_p,
+                                                                                        migrate_rate)
+            if job_to_migrate is not None:
+                low_state_p.tasks.append(job_to_migrate)
+                low_state_p.state['ready_instances'] = low_state_p.state['ready_instances'].union(ready_instances)
+                low_state_p.state['queue'] = low_state_p.state['queue'].union(queue_instances)
+                print(job_to_migrate)
+
+    def _save_processor_state(self, p: Processor, partition: int):
+        until_then = (partition + 1) * self.time_partition
+        running_time = 0
+        for log in self.run_logger[p]:
+            if log['end_time'] > until_then:
+                break
+            running_time += log['end_time'] - log['start_time']
+
+        p.state = {
+            'utilization': running_time / self.time_partition,
+            'queue': self.queue,
+            'ready_instances': self.ready_instances,
+            'running_instance': self.running_instance,
+        }
+
     def _run_processors(self):
-        for p in self.processors:
-            self._prepare_scheduler_for_processor(p)
-            time_slice_start = 0
-            simulation_time = self.scheduling_upperbound or self.hyper_period_mapper[p]
-            while self.time < simulation_time and (self.queue or self.ready_instances):
-                self._run_instance_and_update_queue()
-                selected_instance = min(self.queue, key=lambda x: x.deadline) if self.queue else None
-                if selected_instance != self.running_instance:
-                    added_time = self._add_log(p, self.running_instance, time_slice_start, self.time + 1)
-                    for i in range(added_time):
-                        self._increase_time_and_update_queue()
-                    self.running_instance = selected_instance
-                    time_slice_start = self.time + 1
-                self._increase_time_and_update_queue()
+        for partition in range(math.ceil(self.scheduling_upperbound / self.time_partition)):
+            if partition > 0:
+                self._prepare_scheduler_after_feedback()
+                self._add_hyper_periods()
+                # self._calculate_slack_times()
+
+            for p in self.processors:
+                print(len(p.tasks), " Task " + str(p.id))
+            for p in self.processors:
+                if partition == 0:
+                    self._prepare_scheduler_for_processor(p)
+                else:
+                    self.queue = p.state['queue']
+                    self.ready_instances = p.state['ready_instances']
+                    self.running_instance = p.state['running_instance']
+
+                time_slice_start = partition * self.time_partition
+                self.time = partition * self.time_partition
+                while self.time < ((partition + 1) * self.time_partition) and (self.queue or self.ready_instances):
+                    self._run_instance_and_update_queue()
+                    selected_instance = min(self.queue, key=lambda x: x.deadline) if self.queue else None
+                    if selected_instance != self.running_instance:
+                        added_time = self._add_log(p, self.running_instance, time_slice_start, self.time + 1)
+                        for i in range(added_time):
+                            self._increase_time_and_update_queue()
+                        self.running_instance = selected_instance
+                        time_slice_start = self.time + 1
+                    self._increase_time_and_update_queue()
+
+                self._save_processor_state(p, partition)
 
     def schedule(self):
         self._add_hyper_periods()

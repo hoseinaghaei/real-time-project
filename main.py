@@ -12,6 +12,7 @@ def run(utilization: float):
     processor_max_f = 1.6
     processor_min_f = 1.2
     scheduling_upperbound = 200
+    time_partition = 20
 
     uunifast_utilization_list = uunifast.generate_uunifast_discard(utilization * processor_count, task_count)
     tasks = task.generate_tasks_from_utilization(uunifast_utilization_list, "task.csv")
@@ -21,11 +22,11 @@ def run(utilization: float):
     processors = list(
         map(lambda x: Processor(x[0] + 1, [tasks[i] for i in x[1]], min_f=processor_min_f, max_f=processor_max_f),
             enumerate(dispatched_tasks)))
-    scheduler = Scheduler(processors=processors, scheduling_upperbound=scheduling_upperbound)
+    scheduler = Scheduler(processors=processors, scheduling_upperbound=scheduling_upperbound, time_partition=time_partition)
     scheduler.schedule()
     logs = scheduler.get_logs()
     DiagramDisplayer.draw(logs)
 
 
 if __name__ == '__main__':
-    run(0.3)
+    run(0.7)
