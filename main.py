@@ -7,7 +7,7 @@ from scheduler import Scheduler
 
 
 def run(utilization: float):
-    task_count = 20
+    task_count = 60
     processor_count = 8
     processor_max_f = 1.6
     processor_min_f = 1.2
@@ -26,6 +26,7 @@ def run(utilization: float):
     scheduler.schedule()
     logs = scheduler.get_logs()
     DiagramDisplayer.draw(logs)
+    DiagramDisplayer.makespan(logs, scheduling_upperbound)
 
 
 if __name__ == '__main__':

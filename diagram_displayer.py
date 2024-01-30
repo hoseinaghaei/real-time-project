@@ -45,3 +45,24 @@ class DiagramDisplayer(object):
 
         plt.tight_layout()
         plt.show()
+
+    @classmethod
+    def makespan(cls, data: dict, scheduling_upperbound: int):
+        fig, ax = plt.subplots(figsize=(len(data) * 2, 8))
+
+        core_numbers = [core.id for core in data]
+        makespans = [min(scheduling_upperbound, max(p_data, key=lambda x: x["end_time"])["end_time"] - min(p_data, key=lambda x: x["start_time"])["start_time"]) for p_data in data.values()]
+
+        ax.bar(
+            core_numbers, makespans,
+            align='center', edgecolor='grey', fill=True,
+            color=[cls._random_color() for _ in range(len(data))]
+        )
+
+        ax.set_xlabel('CORE Number')
+        ax.set_ylabel('Makespan')
+        ax.set_title('Columnar Makespan for Cores')
+        ax.grid(True, which='both', axis='y', linestyle='--', linewidth=1)
+
+        plt.show()
+
