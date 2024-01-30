@@ -25,9 +25,8 @@ def run(utilization: float):
     scheduler = Scheduler(processors=processors, scheduling_upperbound=scheduling_upperbound, time_partition=time_partition)
     scheduler.schedule()
     logs = scheduler.get_logs()
-    DiagramDisplayer.draw(logs)
-    DiagramDisplayer.makespan(logs, scheduling_upperbound)
+    DiagramDisplayer.draw(logs, scheduling_upperbound)
 
 
 if __name__ == '__main__':
-    run(0.7)
+    run(0.9)

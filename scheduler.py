@@ -23,7 +23,7 @@ class Scheduler(object):
     @staticmethod
     def _find_hyper_period(processor: Processor):
         periods = {t.period for t in processor.tasks}
-        return reduce(lambda x, y: x * y // math.gcd(x, y), periods)
+        return reduce(lambda x, y: x * y // math.gcd(x, y), periods, 1)
 
     def _add_hyper_periods(self):
         for p in self.processors:
