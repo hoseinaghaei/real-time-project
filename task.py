@@ -28,6 +28,8 @@ class Instance:
         self.arrival = arrival
         self.deadline = deadline
         self.remaining_time = exec_time
+        self.first_run_time = None
+
 
 
 def generate_tasks_from_utilization(utilization_list: list[float], csv_address: str = None) -> list[Task]:

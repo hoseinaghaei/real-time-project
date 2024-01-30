@@ -73,6 +73,17 @@ class Scheduler(object):
             "criticality": instance.task.criticality,
             "start_time": start,
         }
+        if instance.first_run_time is None:
+            instance.first_run_time = start
+            log.update({
+                'first_run_time': start,
+                'arrival': instance.arrival
+            })
+        if instance.remaining_time == 0:
+            log.update({
+                'slack_time': instance.deadline - end
+            })
+
         has_slack, new_exec_time, added_time = self._has_slack(p, start, end)
         if has_slack:
             log.update({
@@ -196,10 +207,7 @@ class Scheduler(object):
             if partition > 0:
                 self._prepare_scheduler_after_feedback()
                 self._add_hyper_periods()
-                # self._calculate_slack_times()
 
-            for p in self.processors:
-                print(len(p.tasks), " Task " + str(p.id))
             for p in self.processors:
                 if partition == 0:
                     self._prepare_scheduler_for_processor(p)
